@@ -6,7 +6,7 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody2D), typeof(CircleCollider2D))]
 public class MeteorRock : MonoBehaviour
 {
-    [SerializeField] private float fallSpeed = 5.5f;
+    [SerializeField] private float fallSpeed = 8.5f;
     [SerializeField] private int damage = 35;
     [SerializeField] private float maximumLifetime = 4f;
 

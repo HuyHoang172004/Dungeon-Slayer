@@ -14,6 +14,15 @@ public class KeyPickup : MonoBehaviour
 
     private Vector3 startPosition;
 
+    public Sprite IconSprite
+    {
+        get
+        {
+            SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+            return spriteRenderer != null ? spriteRenderer.sprite : null;
+        }
+    }
+
     private void Awake()
     {
         startPosition = transform.position;
@@ -47,5 +56,14 @@ public class KeyPickup : MonoBehaviour
     {
         startPosition = position;
         transform.position = position;
+    }
+
+    public void SetVisualColor(Color color)
+    {
+        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = color;
+        }
     }
 }

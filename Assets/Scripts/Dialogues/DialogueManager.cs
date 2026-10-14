@@ -86,7 +86,11 @@ public class DialogueManager : MonoBehaviour {
 
     private void OnTriggerExit2D(Collider2D collision) {
         if(collision.CompareTag("Player")) {
-            dialoguePanel.SetActive(false);
+            // The dialogue canvas can already be destroyed while a scene is
+            // unloading (for example after the final victory buttons).
+            if (dialoguePanel != null) {
+                dialoguePanel.SetActive(false);
+            }
             StopAllCoroutines();
             sentenceFullyVisibleAt = float.PositiveInfinity;
         }

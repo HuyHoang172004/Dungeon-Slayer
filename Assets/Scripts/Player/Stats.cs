@@ -126,10 +126,18 @@ public class Stats : MonoBehaviour {
 
         if (camera != null) camera.SetActive(true);
         if (stats != null) stats.SetActive(false);
+        StartCoroutine(PauseAfterDeath());
 
         if (deathSound != null) {
             Instantiate(deathSound);
         }
+    }
+
+    private System.Collections.IEnumerator PauseAfterDeath() {
+        // Let the death pose appear briefly, then freeze enemies and hazards
+        // while the Game Over menu is awaiting REPLAY.
+        yield return new WaitForSecondsRealtime(0.45f);
+        Time.timeScale = 0f;
     }
 
     private void UpdateHealthUI() {

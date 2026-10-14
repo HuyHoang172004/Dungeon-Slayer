@@ -8,6 +8,8 @@ using UnityEngine;
 [RequireComponent(typeof(Enemy))]
 public class FinalWizardBossAI : MonoBehaviour
 {
+    public int CurrentPhase => phase;
+
     private Enemy enemy;
     private MageWeapon mageWeapon;
     private SpriteRenderer spriteRenderer;
@@ -19,6 +21,8 @@ public class FinalWizardBossAI : MonoBehaviour
     private float nextFanTime;
     private float nextReactiveBlink;
     private bool phaseThreeLoopRunning;
+    private bool defeatSequenceStarted;
+    private int meteorWaveIndex;
     [SerializeField] private Sprite meteorRockSprite;
     private Sprite warningSprite;
 
@@ -32,6 +36,9 @@ public class FinalWizardBossAI : MonoBehaviour
         originalScale = transform.localScale;
         maxHealth = Mathf.Max(1, enemy.health);
         lastHealth = enemy.health;
+
+        if (GetComponent<FinalLevelFlow>() == null)
+            gameObject.AddComponent<FinalLevelFlow>();
     }
 
     private void Update()
@@ -67,6 +74,46 @@ public class FinalWizardBossAI : MonoBehaviour
 
         if (phase == 3 && !phaseThreeLoopRunning)
             StartCoroutine(PhaseThreeCombatLoop());
+    }
+
+    /// <summary>
+    /// Keeps Malakar in the scene for the ending ritual instead of allowing
+    /// Enemy.Die to destroy him immediately.
+    /// </summary>
+    public bool BeginDefeatSequence()
+    {
+        if (defeatSequenceStarted) return true;
+        defeatSequenceStarted = true;
+        StopAllCoroutines();
+
+        Boss bossMovement = GetComponent<Boss>();
+        if (bossMovement != null) bossMovement.enabled = false;
+        if (mageWeapon != null) mageWeapon.enabled = false;
+
+        foreach (Collider2D hitbox in GetComponents<Collider2D>())
+            hitbox.enabled = false;
+
+        Rigidbody2D body = GetComponent<Rigidbody2D>();
+        if (body != null)
+        {
+            body.linearVelocity = Vector2.zero;
+            body.bodyType = RigidbodyType2D.Kinematic;
+        }
+
+        if (spriteRenderer != null)
+            spriteRenderer.color = new Color(0.55f, 0.35f, 0.7f, 1f);
+        Animator bossAnimator = GetComponent<Animator>();
+        if (bossAnimator != null) bossAnimator.enabled = false;
+
+        if (ScoreManager.instance != null)
+            ScoreManager.instance.ChangeScore(100);
+
+        foreach (MeteorRock rock in FindObjectsByType<MeteorRock>(FindObjectsSortMode.None))
+            Destroy(rock.gameObject);
+        foreach (MageBall ball in FindObjectsByType<MageBall>(FindObjectsSortMode.None))
+            Destroy(ball.gameObject);
+
+        return true;
     }
 
     private void UpdatePhase()
@@ -153,19 +200,30 @@ public class FinalWizardBossAI : MonoBehaviour
 
         List<float> impactX = new List<float>();
         float centerX = player.position.x;
-        int safeStart = Random.Range(1, 7);
-        for (int i = 0; i < 9; i++)
+
+        // Alternate between a readable, evenly spaced wall and a chaotic
+        // pattern with tight clusters separated by large gaps. Both always
+        // contain exactly seven rocks and are announced by warning marks.
+        bool evenPattern = meteorWaveIndex++ % 2 == 0;
+        if (evenPattern)
         {
-            // Nine fixed lanes with two adjacent lanes omitted leave a clear
-            // safe zone. The remaining seven lanes receive rocks.
-            if (i == safeStart || i == safeStart + 1) continue;
-            float x = centerX + (i - 4) * 1.8f;
-            impactX.Add(x);
-            CreateMeteorWarning(new Vector3(x, player.position.y + 1.35f, player.position.z));
+            const float spacing = 1.75f;
+            for (int i = 0; i < 7; i++)
+                impactX.Add(centerX + (i - 3) * spacing);
+        }
+        else
+        {
+            float[] chaoticOffsets = { -5.4f, -4.75f, -1.45f, 0.15f, 0.72f, 4.15f, 5.45f };
+            float mirror = Random.value < 0.5f ? -1f : 1f;
+            float drift = Random.Range(-0.55f, 0.55f);
+            foreach (float offset in chaoticOffsets)
+                impactX.Add(centerX + offset * mirror + drift + Random.Range(-0.12f, 0.12f));
         }
 
-        // Give the player time to read the warning before the whole wave falls.
-        yield return new WaitForSeconds(0.8f);
+        foreach (float x in impactX)
+            CreateMeteorWarning(new Vector3(x, player.position.y + 1.35f, player.position.z));
+
+        yield return new WaitForSeconds(0.62f);
         foreach (float x in impactX)
         {
             GameObject rock = new GameObject("Wizard Meteor Rock");
@@ -193,7 +251,7 @@ public class FinalWizardBossAI : MonoBehaviour
 
         if (ImpactFX.instance != null) ImpactFX.instance.CameraShake();
         Debug.Log("Wizard Boss: meteor shower launched (7 rocks).");
-        yield return new WaitForSeconds(1.2f);
+        yield return new WaitForSeconds(0.92f);
     }
 
     private Sprite GetMeteorRockSprite()

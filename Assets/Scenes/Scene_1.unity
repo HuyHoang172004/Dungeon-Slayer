@@ -31294,6 +31294,10 @@ PrefabInstance:
       propertyPath: textDefense
       value: 
       objectReference: {fileID: 1362828485}
+    - target: {fileID: 2369990289210757353, guid: dbcb10883e4a7dace8e37feda9a42605, type: 3}
+      propertyPath: invincibleForBossTesting
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2369990289210757354, guid: dbcb10883e4a7dace8e37feda9a42605, type: 3}
       propertyPath: sound
       value: 

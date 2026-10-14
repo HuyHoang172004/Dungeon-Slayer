@@ -12,9 +12,17 @@ public class Portal : MonoBehaviour
     private bool guardianDefeated;
     private bool guardianWasAssigned;
     [SerializeField] private float npcObjectiveRange = 5.5f;
+    [SerializeField] private float eventMessageDuration = 6f;
     private Transform playerTransform;
     private DialogueManager[] instructors;
     private ObjectivePanel objectivePanel;
+    private string guardianDisplayName = "Kẻ Canh Giữ";
+    private string keyDisplayName = "Chìa Khóa Cổ";
+    private Color keyColor = Color.white;
+    private Sprite keyIconSprite;
+    private string eventMessage;
+    private float eventMessageUntil;
+    private bool keyPickupNotified;
 
     private void Awake()
     {
@@ -87,13 +95,37 @@ public class Portal : MonoBehaviour
             }
         }
 
-        string guardianName = SceneManager.GetActiveScene().name switch
+        string guardianName;
+        switch (SceneManager.GetActiveScene().name)
         {
-            "Scene_1" => "Knight",
-            "Scene_2" => "Bee",
-            "Scene_3" => "Vampire",
-            _ => string.Empty
-        };
+            case "Scene_1":
+                guardianName = "Knight";
+                guardianDisplayName = "Knight";
+                keyDisplayName = "Chìa khóa Lòng Dũng Cảm";
+                keyColor = new Color(1f, 0.78f, 0.16f, 1f);
+                break;
+            case "Scene_2":
+                guardianName = "Bee";
+                guardianDisplayName = "Bee";
+                keyDisplayName = "Chìa khóa Sự Sống";
+                keyColor = new Color(0.3f, 1f, 0.38f, 1f);
+                break;
+            case "Scene_3":
+                guardianName = "Vampire";
+                guardianDisplayName = "Vampire";
+                keyDisplayName = "Chìa khóa Ý Chí";
+                keyColor = new Color(0.72f, 0.38f, 1f, 1f);
+                break;
+            default:
+                guardianName = string.Empty;
+                break;
+        }
+
+        if (levelKey != null)
+        {
+            levelKey.SetVisualColor(keyColor);
+            keyIconSprite = levelKey.IconSprite;
+        }
 
         if (string.IsNullOrEmpty(guardianName))
         {
@@ -186,7 +218,9 @@ public class Portal : MonoBehaviour
                 levelKey.PlaceAt(keyGuardian.transform.position);
             }
             levelKey.gameObject.SetActive(true);
-            Debug.Log("Kẻ Canh Giữ đã bị đánh bại. Chìa Khóa Cổ đã xuất hiện.");
+            ShowEventMessage(
+                $"{guardianDisplayName} đã được giải thoát!\n{keyDisplayName} đã xuất hiện.");
+            Debug.Log($"{guardianDisplayName} đã được giải thoát. {keyDisplayName} đã xuất hiện.");
         }
     }
 
@@ -197,6 +231,18 @@ public class Portal : MonoBehaviour
             return;
         }
 
+        if (KeyPickup.HasKey && !keyPickupNotified)
+        {
+            keyPickupNotified = true;
+            ShowEventMessage($"Đã thu hồi {keyDisplayName}!\nHãy đến cổng để tiếp tục hành trình.");
+        }
+
+        if (Time.unscaledTime < eventMessageUntil)
+        {
+            objectivePanel.ShowEvent(eventMessage, keyIconSprite, keyColor);
+            return;
+        }
+
         if (!IsPlayerNearInstructor())
         {
             objectivePanel.SetVisible(false);
@@ -204,11 +250,17 @@ public class Portal : MonoBehaviour
         }
 
         string objective = KeyPickup.HasKey
-            ? "Chìa khóa đã có — đi đến cổng để qua màn"
+            ? $"ĐÃ THU HỒI {keyDisplayName}\nHãy đến cổng để qua màn."
             : !guardianDefeated && keyGuardian != null
-                ? "Mục tiêu: Hạ gục Kẻ Canh Giữ để lấy chìa khóa"
-                : "Mục tiêu: Tìm Chìa Khóa Cổ để mở cổng";
+                ? $"MỤC TIÊU\nGiải thoát {guardianDisplayName} và thu hồi {keyDisplayName}."
+                : $"MỤC TIÊU\nThu hồi {keyDisplayName} vừa xuất hiện.";
         objectivePanel.Show(objective);
+    }
+
+    private void ShowEventMessage(string message)
+    {
+        eventMessage = message;
+        eventMessageUntil = Time.unscaledTime + eventMessageDuration;
     }
 
     private bool IsPlayerNearInstructor()

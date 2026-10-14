@@ -42,6 +42,10 @@ public static class GameProgress {
     private const string PositionYKey = "CheckpointPositionY";
     private const int FirstLevelBuildIndex = 1;
 
+    private static string GetLevelStarKey(int sceneBuildIndex) {
+        return $"CollectedStar_{sceneBuildIndex}";
+    }
+
     public static void SaveCheckpoint(int sceneBuildIndex) {
         if (sceneBuildIndex < FirstLevelBuildIndex ||
             sceneBuildIndex >= SceneManager.sceneCountInBuildSettings) {
@@ -70,7 +74,36 @@ public static class GameProgress {
         PlayerPrefs.SetInt("ScoreCoins", 0);
         PlayerPrefs.SetInt("ScoreGems", 0);
         PlayerPrefs.SetInt("ScoreStars", 0);
+        for (int i = FirstLevelBuildIndex; i < SceneManager.sceneCountInBuildSettings; i++) {
+            PlayerPrefs.DeleteKey(GetLevelStarKey(i));
+        }
         SaveCheckpoint(FirstLevelBuildIndex);
+    }
+
+    public static bool IsLevelStarCollected(int sceneBuildIndex) {
+        return sceneBuildIndex >= FirstLevelBuildIndex &&
+               PlayerPrefs.GetInt(GetLevelStarKey(sceneBuildIndex), 0) == 1;
+    }
+
+    public static bool TryCollectLevelStar(int sceneBuildIndex) {
+        if (sceneBuildIndex < FirstLevelBuildIndex || IsLevelStarCollected(sceneBuildIndex)) {
+            return false;
+        }
+
+        PlayerPrefs.SetInt(GetLevelStarKey(sceneBuildIndex), 1);
+        PlayerPrefs.Save();
+        return true;
+    }
+
+    public static void RestartLevel(int sceneBuildIndex) {
+        if (sceneBuildIndex < FirstLevelBuildIndex ||
+            sceneBuildIndex >= SceneManager.sceneCountInBuildSettings) {
+            sceneBuildIndex = GetCheckpoint();
+        }
+
+        PlayerPrefs.SetInt(CheckpointSceneKey, sceneBuildIndex);
+        ClearSavedPosition();
+        PlayerPrefs.Save();
     }
 
     public static void SavePlayerPosition(Vector3 position) {

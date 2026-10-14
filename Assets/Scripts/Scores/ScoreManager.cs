@@ -70,8 +70,9 @@ public class ScoreManager : MonoBehaviour {
     }
 
     public void ChangeScoreStar(int starsValue) {
-        scoreStars += starsValue;
+        scoreStars = Mathf.Clamp(scoreStars + starsValue, 0, maxStars);
         PlayerPrefs.SetInt("ScoreStars", scoreStars);
+        PlayerPrefs.Save();
         if (textStars != null) textStars.text = $"{maxStars}/{scoreStars}";
     }
 

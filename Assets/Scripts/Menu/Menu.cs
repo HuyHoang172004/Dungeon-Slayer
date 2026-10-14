@@ -6,11 +6,22 @@ using TMPro;
 
 public class Menu : MonoBehaviour
 {
+    private const string ReplayIntroKey = "ReplayStoryIntro";
+
     private void Start()
     {
-        if (SceneManager.GetActiveScene().name == "Menu")
+        // With an in-memory gameplay session, Menu is loaded additively and
+        // does not become the active scene until after its Start methods run.
+        if (gameObject.scene.name == "Menu")
         {
             CreateCheckpointButtons();
+
+            if (PlayerPrefs.GetInt(ReplayIntroKey, 0) == 1)
+            {
+                PlayerPrefs.DeleteKey(ReplayIntroKey);
+                PlayerPrefs.Save();
+                NewGame();
+            }
         }
     }
 
@@ -24,6 +35,12 @@ public class Menu : MonoBehaviour
     {
         Time.timeScale = 1;
 
+        // A gameplay scene kept in memory takes priority over the disk checkpoint.
+        if (SuspendedGameSession.Resume())
+        {
+            return;
+        }
+
         // Resume trong Pause Menu chi chi can bo pause; khong duoc tai lai man.
         if (SceneManager.GetActiveScene().name != "Menu")
         {
@@ -36,18 +53,48 @@ public class Menu : MonoBehaviour
     public void NewGame()
     {
         Time.timeScale = 1;
+        SuspendedGameSession.Discard();
         GameProgress.StartNewGame();
+
+        TextMeshProUGUI menuText = GetComponentInChildren<TextMeshProUGUI>(true);
+        StoryIntroUI storyIntro = GetComponent<StoryIntroUI>();
+        if (storyIntro == null)
+        {
+            storyIntro = gameObject.AddComponent<StoryIntroUI>();
+        }
+
+        storyIntro.Show(menuText != null ? menuText.font : null, LoadFirstLevel);
+    }
+
+    private void LoadFirstLevel()
+    {
         SceneManager.LoadScene(1);
     }
 
     public void QuitGame()
     {
+        if (SceneManager.GetActiveScene().name != "Menu")
+        {
+            SuspendedGameSession.SuspendToMenu();
+            return;
+        }
+
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
         Application.Quit();
+#endif
     }
 
     public void PlayAgain()
     {
-        SceneManager.LoadScene("Menu");
+        Time.timeScale = 1f;
+        SuspendedGameSession.Discard();
+        int sceneIndex = SceneManager.GetActiveScene().buildIndex;
+        if (sceneIndex < 1)
+            sceneIndex = GameProgress.GetCheckpoint();
+        GameProgress.RestartLevel(sceneIndex);
+        SceneManager.LoadScene(sceneIndex);
     }
 
     private void CreateCheckpointButtons()

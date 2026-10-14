@@ -56,6 +56,13 @@ public class Enemy : MonoBehaviour {
         }
 
         if (health <= 0) {
+            FinalWizardBossAI finalBoss = GetComponent<FinalWizardBossAI>();
+            if (finalBoss != null && finalBoss.BeginDefeatSequence()) {
+                health = 0;
+                isDead = true;
+                return;
+            }
+
             Die();
         }
     }
